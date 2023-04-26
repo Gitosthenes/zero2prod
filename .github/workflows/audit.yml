@@ -2,16 +2,19 @@ name: Security audit
 on:
   schedule:
     - cron: '0 0 * * *'
-#  push:
-#    paths:
-#      - '**/Cargo.toml'
-#      - '**/Cargo.lock'
+  push:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
 
 jobs:
   security_audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          profile: minimal
       - uses: rustsec/audit-check@v1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
