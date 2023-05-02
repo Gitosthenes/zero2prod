@@ -5,10 +5,10 @@ name: Continuous Integration
 # To automatically trigger the workflow
 on:
   push:
-    branches: [ "master", "dev" ]
+    branches: [ "master" ]
   pull_request:
     types: [ opened, synchronize, reopened ]
-    branches: [ "master", "dev" ]
+    branches: [ "master" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,7 +19,7 @@ jobs:
   # Unique identifier of our job (`job_id`)
   test:
     # Sets the name `Test` for the job, which is displayed in the GitHub UI
-    name: Cargo test
+    name: Test
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Service containers to run with the `test` container job
@@ -81,7 +81,7 @@ jobs:
 
   # `fmt` container job
   fmt:
-    name: Cargo fmt
+    name: Format
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
@@ -98,7 +98,7 @@ jobs:
 
   # `clippy` container job
   clippy:
-    name: Cargo clippy
+    name: Clippy
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -143,47 +143,47 @@ jobs:
       - name: Linting
         run: cargo clippy -- -D warnings
 
-  # `coverage` container job
-  coverage:
-    name: Cargo tarpaulin (Code Coverage)
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-    steps:
-      - name: Checkout repository code
-        uses: actions/checkout@v3
-
-      - name: Select stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install postgresql-client
-        run: sudo apt-get update && sudo apt-get install postgresql-client -y
-
-      - name: Rust Cache Action
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: sqlx-${{ env.SQLX_VERSION }}
-
-      - name: Install sqlx-cli
-        run:
-          cargo install sqlx-cli
-          --version=${{ env.SQLX_VERSION }}
-          --features ${{ env.SQLX_FEATURES }}
-          --no-default-features
-          --locked
-
-      - name: Grant permissions to shell script
-        run: chmod +x ./scripts/init_db.sh
-
-      - name: Migrate database
-        run: SKIP_DOCKER=true ./scripts/init_db.sh
-
-      - name: Generate code coverage
-        run: cargo install cargo-tarpaulin && cargo tarpaulin --verbose --workspace
+# `coverage` container job: Has docker issues (https://github.com/xd009642/tarpaulin/issues/406)
+#  coverage:
+#    name: Tarpaulin
+#    runs-on: ubuntu-latest
+#    services:
+#      postgres:
+#        image: postgres:14
+#        env:
+#          POSTGRES_USER: postgres
+#          POSTGRES_PASSWORD: password
+#          POSTGRES_DB: postgres
+#        ports:
+#          - 5432:5432
+#    steps:
+#      - name: Checkout repository code
+#        uses: actions/checkout@v3
+#
+#      - name: Select stable toolchain
+#        uses: dtolnay/rust-toolchain@stable
+#
+#      - name: Install postgresql-client
+#        run: sudo apt-get update && sudo apt-get install postgresql-client -y
+#
+#      - name: Rust Cache Action
+#        uses: Swatinem/rust-cache@v2
+#        with:
+#          key: sqlx-${{ env.SQLX_VERSION }}
+#
+#      - name: Install sqlx-cli
+#        run:
+#          cargo install sqlx-cli
+#          --version=${{ env.SQLX_VERSION }}
+#          --features ${{ env.SQLX_FEATURES }}
+#          --no-default-features
+#          --locked
+#
+#      - name: Grant permissions to shell script
+#        run: chmod +x ./scripts/init_db.sh
+#
+#      - name: Migrate database
+#        run: SKIP_DOCKER=true ./scripts/init_db.sh
+#
+#      - name: Generate code coverage
+#        run: cargo install cargo-tarpaulin && cargo tarpaulin --verbose --workspace
