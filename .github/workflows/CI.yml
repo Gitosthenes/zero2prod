@@ -19,7 +19,7 @@ jobs:
   # Unique identifier of our job (`job_id`)
   test:
     # Sets the name `Test` for the job, which is displayed in the GitHub UI
-    name: Test
+    name: Cargo test
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Service containers to run with the `test` container job
@@ -64,11 +64,14 @@ jobs:
           --no-default-features
           --locked
           # The --locked flag can be used to force Cargo to use the packaged Cargo.lock file if it is available.
-        # This may be useful for ensuring reproducible builds, to use the exact same set of dependencies that were available when the package was published.
-        # It may also be useful if a newer version of a dependency is published that no longer builds on your system, or has other problems
+          # This may be useful for ensuring reproducible builds, to use the exact same set of dependencies that were available when the package was published.
+          # It may also be useful if a newer version of a dependency is published that no longer builds on your system, or has other problems
 
       - name: Install postgresql-client
         run: sudo apt-get update && sudo apt-get install postgresql-client -y
+
+      - name: Grant permissions to shell script
+        run: chmod +x ./scripts/init_db.sh
 
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
@@ -78,20 +81,24 @@ jobs:
 
   # `fmt` container job
   fmt:
-    name: Rustfmt
+    name: Cargo fmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Select stable toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           # Specific to dtolnay/rust-toolchain: Comma-separated string of additional components to install
           components: rustfmt
+
       - name: Enforce formatting
         run: cargo fmt --check
 
   # `clippy` container job
   clippy:
-    name: Clippy
+    name: Cargo clippy
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -103,13 +110,19 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Select stable toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - uses: Swatinem/rust-cache@v2
+
+      - name: Rust Cache Action
+        uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
+
       - name: Install sqlx-cli
         run:
           cargo install sqlx-cli
@@ -117,16 +130,22 @@ jobs:
           --features ${{ env.SQLX_FEATURES }}
           --no-default-features
           --locked
+
       - name: Install postgresql-client
         run: sudo apt-get update && sudo apt-get install postgresql-client -y
+
+      - name: Grant permissions to shell script
+        run: chmod +x ./scripts/init_db.sh
+
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
+
       - name: Linting
         run: cargo clippy -- -D warnings
 
   # `coverage` container job
   coverage:
-    name: Code coverage
+    name: Cargo tarpaulin (Code Coverage)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -138,14 +157,20 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - name: Checkout repository
+      - name: Checkout repository code
         uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Select stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install postgresql-client
         run: sudo apt-get update && sudo apt-get install postgresql-client -y
-      - uses: Swatinem/rust-cache@v2
+
+      - name: Rust Cache Action
+        uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
+
       - name: Install sqlx-cli
         run:
           cargo install sqlx-cli
@@ -153,7 +178,12 @@ jobs:
           --features ${{ env.SQLX_FEATURES }}
           --no-default-features
           --locked
+
+      - name: Grant permissions to shell script
+        run: chmod +x ./scripts/init_db.sh
+
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
+
       - name: Generate code coverage
         run: cargo install cargo-tarpaulin && cargo tarpaulin --verbose --workspace
