@@ -1,3 +1,8 @@
+pub enum ConnectTo {
+    Server,
+    Database,
+}
+
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
@@ -14,10 +19,17 @@ pub struct DatabaseSettings {
 }
 
 impl DatabaseSettings {
-    pub fn connection_string(&self) -> String {
+    pub fn connection_string(&self, connect_to: ConnectTo) -> String {
+        // Append "/db_name" according to `include_name` param
+        let db_name = match connect_to {
+            ConnectTo::Server => String::new(),
+            ConnectTo::Database => format!("/{}", self.database_name),
+        };
+
+        // Format/Return connection string
         format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database_name
+            "postgres://{}:{}@{}:{}{}",
+            self.username, self.password, self.host, self.port, db_name
         )
     }
 }
