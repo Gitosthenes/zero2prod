@@ -15,7 +15,6 @@ actix-web = "4.3.1"
 chrono = { version = "0.4.24", default-features = false, features = ["clock"] }
 config = "0.13.3"
 env_logger = "0.10.0"
-#log = "0.4.17"
 serde = { version = "1.0.160", features = ["derive"] }
 tokio = { version = "1.28.0", features = ["macros", "rt-multi-thread"] }
 tokio-test = "0.4.2"
