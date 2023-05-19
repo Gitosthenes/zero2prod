@@ -3,6 +3,7 @@ use actix_web::dev::Server;
 use actix_web::{web, App, HttpServer};
 use sqlx::PgPool;
 use std::net::TcpListener;
+use tracing_actix_web::TracingLogger;
 
 pub fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error> {
     // Wrap connection in a smart pointer
@@ -10,7 +11,8 @@ pub fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Er
     // Capture `connection` from the surrounding environment
     let server = HttpServer::new(move || {
         App::new()
-            .route("/subscriptions", web::post().to(subscribe))
+            .wrap(TracingLogger::default())
+            .route("/subscribe", web::post().to(subscribe))
             .route("/health_check", web::get().to(health_check))
             .app_data(db_pool.clone()) // Clone pointer and attach to app state
     })

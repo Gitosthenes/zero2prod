@@ -1,3 +1,5 @@
+use secrecy::{ExposeSecret, Secret};
+
 pub enum ConnectTo {
     Server,
     Database,
@@ -12,25 +14,29 @@ pub struct Settings {
 #[derive(serde::Deserialize)]
 pub struct DatabaseSettings {
     pub username: String,
-    pub password: String,
+    pub password: Secret<String>,
     pub database_name: String,
     pub host: String,
     pub port: u16,
 }
 
 impl DatabaseSettings {
-    pub fn connection_string(&self, connect_to: ConnectTo) -> String {
+    pub fn connection_string(&self, connect_to: ConnectTo) -> Secret<String> {
         // Append "/db_name" according to `include_name` param
         let db_name = match connect_to {
             ConnectTo::Server => String::new(),
             ConnectTo::Database => format!("/{}", self.database_name),
         };
 
-        // Format/Return connection string
-        format!(
+        // Format/Return connection string as `Secret`
+        Secret::new(format!(
             "postgres://{}:{}@{}:{}{}",
-            self.username, self.password, self.host, self.port, db_name
-        )
+            self.username,
+            self.password.expose_secret(),
+            self.host,
+            self.port,
+            db_name
+        ))
     }
 }
 
