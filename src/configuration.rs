@@ -61,7 +61,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
 
     // Initialize config
     let settings = config::Config::builder()
-        .add_source(config::File::from(config_path.join("base.yaml")))
+        .add_source(config::File::from(config_path.join("base.yml")))
         .add_source(config::File::from(config_path.join(env_file)))
         .build()?;
 
