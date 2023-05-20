@@ -14,7 +14,6 @@ env:
   CARGO_TERM_COLOR: always
   SQLX_VERSION: 0.6.2
   SQLX_FEATURES: "rustls,postgres"
-  SQLX_OFFLINE: true
 
 jobs:
   # Unique identifier of our job (`job_id`)
@@ -63,7 +62,7 @@ jobs:
           --version=${{ env.SQLX_VERSION }}
           --features ${{ env.SQLX_FEATURES }}
           --no-default-features
-          --locked
+          #--locked
           # The --locked flag can be used to force Cargo to use the packaged Cargo.lock file if it is available.
           # This may be useful for ensuring reproducible builds, to use the exact same set of dependencies that were available when the package was published.
           # It may also be useful if a newer version of a dependency is published that no longer builds on your system, or has other problems
@@ -78,7 +77,7 @@ jobs:
         run: SKIP_DOCKER=true ./scripts/init_db.sh
 
       - name: Check sqlx-data.json is up-to-date
-        run: cargo sqlx prepare --check -- --bin zero2prod --tests
+        run: cargo sqlx prepare --check -- --tests
 
       - name: Run tests
         run: cargo test
