@@ -14,6 +14,7 @@ env:
   CARGO_TERM_COLOR: always
   SQLX_VERSION: 0.6.2
   SQLX_FEATURES: "rustls,postgres"
+  SQLX_OFFLINE: true
 
 jobs:
   # Unique identifier of our job (`job_id`)
