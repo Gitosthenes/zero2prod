@@ -57,7 +57,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     )
     .unwrap_or(Environment::Local);
     // Environment config file name
-    let env_file = format!("{}.yaml", env.as_ref());
+    let env_file = format!("{}.yml", env.as_ref());
 
     // Initialize config
     let settings = config::Config::builder()
