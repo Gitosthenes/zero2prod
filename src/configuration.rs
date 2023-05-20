@@ -1,14 +1,17 @@
 use secrecy::{ExposeSecret, Secret};
-
-pub enum ConnectTo {
-    Server,
-    Database,
-}
+use std::str::FromStr;
+use strum_macros::{AsRefStr, EnumString};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
+    pub application: ApplicationSettings,
     pub database: DatabaseSettings,
-    pub application_port: u16,
+}
+
+#[derive(serde::Deserialize)]
+pub struct ApplicationSettings {
+    pub port: u16,
+    pub host: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -41,14 +44,41 @@ impl DatabaseSettings {
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
-    // Initialise our configuration reader
+    // Get path to configuration
+    let config_path = std::env::current_dir()
+        .expect("Failed to get current directory")
+        .join("configuration");
+
+    // Detect running environment (default: local)
+    let env: Environment = Environment::from_str(
+        std::env::var("APP_ENVIRONMENT")
+            .unwrap_or(String::from("local"))
+            .as_str(),
+    )
+    .unwrap_or(Environment::Local);
+    // Environment config file name
+    let env_file = format!("{}.yaml", env.as_ref());
+
+    // Initialize config
     let settings = config::Config::builder()
-        .add_source(
-            // Add configuration values from a file named `configuration.yaml`.
-            config::File::new("config.yaml", config::FileFormat::Yaml),
-        )
+        .add_source(config::File::from(config_path.join("base.yaml")))
+        .add_source(config::File::from(config_path.join(env_file)))
         .build()?;
 
     // Try to convert the configuration values it read into our Settings type
     settings.try_deserialize::<Settings>()
+}
+
+// Serialized names must match name of .yaml file in /configuration directory
+#[derive(AsRefStr, EnumString)]
+pub enum Environment {
+    #[strum(serialize = "local")]
+    Local,
+    #[strum(serialize = "production")]
+    Production,
+}
+
+pub enum ConnectTo {
+    Server,
+    Database,
 }
