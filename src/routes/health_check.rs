@@ -1,7 +1,6 @@
 use actix_web::HttpResponse;
 
 pub async fn health_check() -> HttpResponse {
-    println!("Hello Health Check");
     HttpResponse::Ok().finish()
 }
 

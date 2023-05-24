@@ -1,3 +1,4 @@
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use sqlx::postgres::PgQueryResult;
@@ -20,7 +21,20 @@ pub struct FormData {
     )
 )]
 pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    match insert_subscriber(&form, &db_pool).await {
+    // Parse email from form data
+    let email = match SubscriberEmail::parse(form.0.email) {
+        Ok(valid_email) => valid_email,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+    // Parse name from form data
+    let name = match SubscriberName::parse(form.0.name) {
+        Ok(valid_name) => valid_name,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+
+    // Create and insert new subscriber
+    let new_sub = NewSubscriber { email, name };
+    match insert_subscriber(&new_sub, &db_pool).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
@@ -28,7 +42,7 @@ pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) ->
 
 #[instrument(name = "Saving new subscriber details in the database", skip_all)]
 async fn insert_subscriber(
-    form: &FormData,
+    subscriber: &NewSubscriber,
     db_pool: &PgPool,
 ) -> Result<PgQueryResult, sqlx::Error> {
     sqlx::query!(
@@ -37,8 +51,8 @@ async fn insert_subscriber(
             VALUES ($1, $2, $3, $4)
         "#,
         Uuid::new_v4(),
-        form.email,
-        form.name,
+        subscriber.email.as_ref(),
+        subscriber.name.as_ref(),
         Utc::now()
     )
     .execute(db_pool)

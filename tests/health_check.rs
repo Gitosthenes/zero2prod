@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use reqwest::Response;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
@@ -45,7 +46,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     ];
 
     //Action
-    for (post_body, error_msg) in test_cases {
+    for (post_body, err_msg) in test_cases {
         let response = client
             .post(format!("{}/subscribe", app.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
@@ -58,7 +59,38 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
             400,
             response.status().as_u16(),
             "The API did not fail with 400 Bad Request (as expected) when the payload was {}",
-            error_msg
+            err_msg
+        )
+    }
+}
+
+#[tokio::test]
+async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
+    // Setup
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let test_cases = vec![
+        ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
+        ("name=Ursula&email=", "empty email"),
+        ("name=Ursula&email=definitely-not-an-email", "invalid email"),
+    ];
+
+    //Action
+    for (body, desc) in test_cases {
+        let res: Response = client
+            .post(&format!("{}/subscribe", &app.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request");
+
+        //Assert
+        assert_eq!(
+            400,
+            res.status().as_u16(),
+            "The API did not return a `Bad Request` (400) when the payload was {}",
+            desc
         )
     }
 }
