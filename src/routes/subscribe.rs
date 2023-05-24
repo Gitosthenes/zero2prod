@@ -12,6 +12,17 @@ pub struct FormData {
     name: String,
 }
 
+impl TryFrom<FormData> for NewSubscriber {
+    type Error = String;
+
+    fn try_from(form: FormData) -> Result<Self, Self::Error> {
+        let email = SubscriberEmail::parse(form.email)?;
+        let name = SubscriberName::parse(form.name)?;
+
+        Ok(Self { email, name })
+    }
+}
+
 #[instrument(
     name = "Adding new subscriber",
     skip_all,
@@ -21,19 +32,12 @@ pub struct FormData {
     )
 )]
 pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    // Parse email from form data
-    let email = match SubscriberEmail::parse(form.0.email) {
-        Ok(valid_email) => valid_email,
-        Err(_) => return HttpResponse::BadRequest().finish(),
-    };
-    // Parse name from form data
-    let name = match SubscriberName::parse(form.0.name) {
-        Ok(valid_name) => valid_name,
+    let new_sub = match NewSubscriber::try_from(form.0) {
+        Ok(sub) => sub,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
 
-    // Create and insert new subscriber
-    let new_sub = NewSubscriber { email, name };
+    // Insert new subscriber
     match insert_subscriber(&new_sub, &db_pool).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -61,4 +65,11 @@ async fn insert_subscriber(
         tracing::error!("Failed to execute query: {:?}", err);
         err
     })
+}
+
+fn parse_subscriber(form: FormData) -> Result<NewSubscriber, String> {
+    let email = SubscriberEmail::parse(form.email)?;
+    let name = SubscriberName::parse(form.name)?;
+
+    Ok(NewSubscriber { email, name })
 }
