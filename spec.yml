@@ -5,6 +5,9 @@ name: zero2prod
 # They must be specified lowercase. `fra` stands for Frankfurt (Germany - EU)
 region: fra
 
+databases:
+  - name: newsletter
+
 services:
   - name: zero2prod
     # Relative to the repository root
@@ -18,7 +21,7 @@ services:
       deploy_on_push: true
       # !!! Fill in with your details
       # e.g. LukeMathWalker/zero-to-production
-      repo: gitosthenes/zero2prod
+      repo: Gitosthenes/zero2prod
 
     # Active probe used by DigitalOcean's to ensure our application is healthy
     health_check:
@@ -36,3 +39,24 @@ services:
     # All incoming requests should be routed to our app
     routes:
       - path: /
+
+    envs:
+      - key: APP_DATABASE__USERNAME
+        scope: RUN_TIME
+        value: ${newsletter.USERNAME}
+
+      - key: APP_DATABASE__PASSWORD
+        scope: RUN_TIME
+        value: ${newsletter.PASSWORD}
+
+      - key: APP_DATABASE__HOST
+        scope: RUN_TIME
+        value: ${newsletter.HOSTNAME}
+
+      - key: APP_DATABASE__PORT
+        scope: RUN_TIME
+        value: ${newsletter.PORT}
+
+      - key: APP_DATABASE__DATABASE_NAME
+        scope: RUN_TIME
+        value: ${newsletter.DATABASE}

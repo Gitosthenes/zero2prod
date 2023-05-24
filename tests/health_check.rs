@@ -1,9 +1,8 @@
 use once_cell::sync::Lazy;
-use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
-use zero2prod::configuration::{get_configuration, ConnectTo, DatabaseSettings};
+use zero2prod::configuration::{get_configuration, DatabaseSettings};
 use zero2prod::telemetry::{get_subscriber, init_subscriber};
 
 #[tokio::test]
@@ -130,26 +129,21 @@ async fn spawn_app() -> TestApp {
 
 pub async fn configure_database(config: &mut DatabaseSettings) -> PgPool {
     // Connect to Postgres
-    let mut connection =
-        PgConnection::connect(config.connection_string(ConnectTo::Server).expose_secret())
-            .await
-            .expect("Failed to connect to Postgres");
+    let mut connection = PgConnection::connect_with(&config.wout_db())
+        .await
+        .expect("Failed to connect to Postgres");
 
     // Create dummy database for test
     config.database_name = Uuid::new_v4().to_string();
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
-        .expect("Failed to create database.");
+        .expect("Failed to create test database");
 
     // Create connection pool for dummy db
-    let connection_pool = PgPool::connect(
-        config
-            .connection_string(ConnectTo::Database)
-            .expose_secret(),
-    )
-    .await
-    .expect("Failed to connect to Postgres.");
+    let connection_pool = PgPool::connect_with(config.with_db())
+        .await
+        .expect("Failed to connect to Postgres.");
 
     // Migrate database
     sqlx::migrate!("./migrations")
