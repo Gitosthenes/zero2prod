@@ -66,10 +66,3 @@ async fn insert_subscriber(
         err
     })
 }
-
-fn parse_subscriber(form: FormData) -> Result<NewSubscriber, String> {
-    let email = SubscriberEmail::parse(form.email)?;
-    let name = SubscriberName::parse(form.name)?;
-
-    Ok(NewSubscriber { email, name })
-}
