@@ -22,7 +22,6 @@ async fn main() -> Result<(), std::io::Error> {
 
     // Start listening
     let address = format!("{}:{}", config.application.host, config.application.port);
-
     let listener = TcpListener::bind(address).expect("Failed to bind");
 
     // Start Application
